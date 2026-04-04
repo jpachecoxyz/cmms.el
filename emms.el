@@ -8,7 +8,7 @@
 
 ;;; Commentary:
 
-;; org-asset provides a simple CMMS-style asset management
+;; emms.el provides a simple CMMS-style asset management
 ;; system built on top of Org Mode.
 
 ;;; Code:
