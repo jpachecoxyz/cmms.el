@@ -50,52 +50,98 @@
 ;;;; Assets
 
 (defun emms-asset-create (name area)
-"Create new asset."
-(interactive "sAsset name: \nsArea: ")
-(emms--ensure-environment)
+  "Create new asset under AREA."
+  (interactive
+   (list
+    (read-string "Asset name: ")
+    (completing-read "Area: " (emms-get-areas))))
 
-(with-current-buffer (find-file-noselect emms-assets-file)
-(goto-char (point-max))
+  (emms--ensure-environment)
 
-(insert
- (format "** %s\n:PROPERTIES:\n:TYPE: asset\n:AREA: %s\n:END:\n\n"
-         name area))
+  (when (member name (emms-get-assets))
+    (user-error "Asset already exists"))
 
-(save-buffer)))
+  (with-current-buffer (find-file-noselect emms-assets-file)
+    (org-mode)
+
+    (unless (emms--goto-area area)
+      (user-error "Area not found"))
+
+    ;; ir al final del subtree
+    (org-end-of-subtree t t)
+
+    (insert
+     (format "\n** %s\n:PROPERTIES:\n:TYPE: asset\n:AREA: %s\n:END:\n"
+             name area))
+
+    (save-buffer)))
+
+(defun emms-get-assets ()
+  "Return list of assets."
+  (when (file-exists-p emms-assets-file)
+    (with-current-buffer (find-file-noselect emms-assets-file)
+      (org-mode)
+      (org-map-entries
+       (lambda ()
+         (org-get-heading t t t t))
+       "TYPE=\"asset\""))))
 
 ;;;; Areas
 
+(defun emms--goto-area (area)
+  "Move point to AREA heading."
+  (goto-char (point-min))
+  (re-search-forward (format "^\\* %s$" (regexp-quote area)) nil t))
+
 (defun emms-area-create (name)
-"Create a new area."
-(interactive "sArea name: ")
-(emms--ensure-environment)
+  "Create a new area."
+  (interactive
+   (list
+    (read-string "Area name: ")))
 
-(with-current-buffer (find-file-noselect emms-assets-file)
-(goto-char (point-max))
+  (emms--ensure-environment)
 
-(insert
- (format "* Area: %s\n:PROPERTIES:\n:TYPE: area\n:END:\n\n"
-         name))
+  (when (member name (emms-get-areas))
+    (user-error "Area already exists"))
 
-(save-buffer)))
+  (with-current-buffer (find-file-noselect emms-assets-file)
+    (goto-char (point-max))
+    (insert
+     (format "* %s\n:PROPERTIES:\n:TYPE: area\n:END:\n\n"
+             name))
+    (save-buffer)))
+
+(defun emms-get-areas ()
+  "Return list of areas."
+  (when (file-exists-p emms-assets-file)
+    (with-current-buffer (find-file-noselect emms-assets-file)
+      (org-mode)
+      (org-map-entries
+       (lambda ()
+         (org-get-heading t t t t))
+       "TYPE=\"area\""))))
 
 ;;;; Workorders
 
 (defun emms-workorder-create (asset description)
-"Create work order."
-(interactive "sAsset: \nsDescription: ")
-(emms--ensure-environment)
+  "Create work order."
+  (interactive
+   (list
+    (completing-read "Asset: " (emms-get-assets))
+    (read-string "Description: ")))
 
-(with-current-buffer (find-file-noselect emms-workorders-file)
-(goto-char (point-max))
+  (emms--ensure-environment)
 
-(insert
- (format "* WO-%s\n:PROPERTIES:\n:ASSET: %s\n:STATUS: OPEN\n:END:\n\n%s\n\n"
-         (format-time-string "%Y%m%d%H%M")
-         asset
-         description))
+  (with-current-buffer (find-file-noselect emms-workorders-file)
+    (goto-char (point-max))
 
-(save-buffer)))
+    (insert
+     (format "* WO-%s\n:PROPERTIES:\n:ASSET: %s\n:STATUS: OPEN\n:END:\n\n%s\n\n"
+             (format-time-string "%Y%m%d%H%M")
+             asset
+             description))
+
+    (save-buffer)))
 
 ;;;; Dashboard
 
