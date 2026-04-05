@@ -2,7 +2,6 @@
 #+AUTHOR: Ing. Javier Pacheco
 #+OPTIONS: toc:2
 
-* EMMS.el
 EMMS (Emacs Maintenance Management System) is a lightweight
 Computerized Maintenance Management System (CMMS) implemented
 entirely in Emacs using Org Mode.
