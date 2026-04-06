@@ -1,3 +1,21 @@
+;;; cmms.el --- CMMS but in elisp -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Javier Pacheco
+
+;; Author: Javier Pacheco <javier@jpacheco.xyz>
+;; Maintainer: Javier Pacheco <javier@jpacheco.xyz>
+;; Created: 2026-04-06
+;; Version: 0.1
+;; Package-Requires: ()
+;; Keywords: cmms, maintenance, engineer
+;; Homepage: https://github.com/jpachecoxyz/cmms
+
+;;; Commentary:
+
+;; Descripción del paquete
+
+;;; Code:
+
 (require 'cl-lib) ;; Necesario para funciones útiles como cl-remove-if-not
 
 ;; 1. Función para agregar o actualizar un equipo
@@ -216,3 +234,7 @@ ID debe ser un símbolo (ej. 'eq-004)."
 (setq cmms-tipos-equipo '("DCM" "Robot" "Sprayer" "Horno"))
 (setq cmms-equipos nil)
 (setq cmms-areas '("Diecasting" "Facilities"))
+
+(provide 'cmms)
+
+;;; cmms.el ends here
