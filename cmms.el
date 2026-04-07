@@ -259,7 +259,8 @@
   (setq tabulated-list-entries
         (cmms--generate-table-entries))
   (tabulated-list-print t)
-  (force-mode-line-update))
+  (setq header-line-format '(:eval (cmms--header-string)))
+  (force-mode-line-update t))
 
 ;;;; ------------------------------------------------------------------
 ;;;; Navigation
@@ -321,8 +322,12 @@
   tabulated-list-mode
   "CMMS"
   "Main CMMS dashboard."
-  (setq header-line-format
-        '(:eval (cmms--header-string)))
+
+  ;; Header
+  (setq-local header-line-format
+              '(:eval (cmms--header-string)))
+
+  ;; Table
   (setq tabulated-list-format
         [("ID" 10 t)
          ("Name" 25 t)
@@ -331,7 +336,13 @@
          ("Status" 12 t)])
 
   (setq tabulated-list-padding 2)
-  (tabulated-list-init-header))
+
+  (tabulated-list-init-header)
+
+  ;; Force redraw
+  (add-hook 'tabulated-list-revert-hook
+            #'cmms-refresh-table
+            nil t))
 
 ;;;; ------------------------------------------------------------------
 ;;;; Entry point
@@ -340,11 +351,9 @@
 (defun cmms ()
   "Open the CMMS dashboard."
   (interactive)
-  (with-current-buffer
-      (get-buffer-create "*CMMS*")
-    (cmms-dashboard-mode)
-    (cmms-refresh-table)
-    (switch-to-buffer (current-buffer))))
+  (switch-to-buffer (get-buffer-create "*CMMS*"))
+  (cmms-dashboard-mode)
+  (cmms-refresh-table))
 
 (provide 'cmms)
 ;;; cmms.el ends here
