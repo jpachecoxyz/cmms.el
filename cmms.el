@@ -13,9 +13,7 @@
 (require 'cl-lib)
 (require 'tabulated-list)
 
-;;;; ------------------------------------------------------------------
-;;;; Core variables
-;;;; ------------------------------------------------------------------
+;;; Core variables
 
 (defvar cmms-company-name "My Company"
   "Company name displayed in the dashboard.")
@@ -41,9 +39,7 @@
 (defvar-local cmms--current-filter nil
   "Active dashboard filter.")
 
-;;;; ------------------------------------------------------------------
-;;;; Internal utilities
-;;;; ------------------------------------------------------------------
+;;; Internal utilities
 
 (defun cmms--generate-next-id ()
   "Generate the next equipment ID."
@@ -60,9 +56,7 @@
   "Return the equipment ID at the current line."
   (tabulated-list-get-id))
 
-;;;; ------------------------------------------------------------------
-;;;; Equipment management
-;;;; ------------------------------------------------------------------
+;;; Equipment management
 
 (defun cmms-sync-id-counter ()
   "Synchronize ID counter with the highest existing ID."
@@ -171,9 +165,7 @@
         (delete area cmms-areas))
   (message "Area removed: %s" area))
 
-;;;; ------------------------------------------------------------------
-;;;; Filters
-;;;; ------------------------------------------------------------------
+;;; Filters
 
 (defun cmms-filter ()
   "Filter equipment."
@@ -204,9 +196,7 @@
   (setq cmms--current-filter nil)
   (cmms-refresh-table))
 
-;;;; ------------------------------------------------------------------
-;;;; Dashboard
-;;;; ------------------------------------------------------------------
+;;; Dashboard
 
 (defun cmms--header-string ()
   "Dynamic dashboard header."
@@ -263,9 +253,7 @@
   (setq header-line-format '(:eval (cmms--header-string)))
   (force-mode-line-update t))
 
-;;;; ------------------------------------------------------------------
-;;;; Navigation
-;;;; ------------------------------------------------------------------
+;;; Navigation
 
 (defun cmms-open-equipment ()
   "Open equipment details."
@@ -274,9 +262,7 @@
     (when id
       (message "Open equipment record: %s" id))))
 
-;;;; ------------------------------------------------------------------
-;;;; Keymap
-;;;; ------------------------------------------------------------------
+;;; Keymap
 
 (defvar cmms-dashboard-mode-map
   (let ((map (make-sparse-keymap)))
@@ -294,9 +280,7 @@
     (define-key map (kbd "q") #'quit-window)
     map))
 
-;;;; ------------------------------------------------------------------
-;;;; Evil integration
-;;;; ------------------------------------------------------------------
+;;; Evil integration
 
 (when (featurep 'evil)
   (evil-set-initial-state
@@ -315,9 +299,7 @@
     (kbd "r") #'cmms-clear-filter
     (kbd "q") #'quit-window))
 
-;;;; ------------------------------------------------------------------
-;;;; Major mode
-;;;; ------------------------------------------------------------------
+;;; Major mode
 
 (define-derived-mode cmms-dashboard-mode
   tabulated-list-mode
@@ -345,9 +327,7 @@
             #'cmms-refresh-table
             nil t))
 
-;;;; ------------------------------------------------------------------
-;;;; Entry point
-;;;; ------------------------------------------------------------------
+;;; Entry point
 
 (defun cmms ()
   "Open the CMMS dashboard."
