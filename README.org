@@ -2,7 +2,6 @@
 #+author: Javier Pacheco
 #+language: en
 
-* cmms.el
 *cmms.el* is a simple *Computerized Maintenance Management System (CMMS)* implemented entirely inside *Emacs* using Emacs Lisp.
 It provides a lightweight dashboard for managing equipment in an industrial environment directly from your editor.
 This project is designed for engineers and technicians who want a minimal maintenance management workflow integrated with Emacs.
