@@ -1,8 +1,8 @@
 ;;; cmms.el --- Simple CMMS inside Emacs -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Javier Pacheco
-;; Author: Javier Pacheco [jpacheco@disroot.org](mailto:jpacheco@disroot.org)
-
+;; Author: Javier Pacheco <jpacheco@disroot.org>(mailto:jpacheco@disroot.org)
+;; Repo: https://github.com/jpachecoxyz/emms.el
 ;;; Commentary:
 ;; A simple Computerized Maintenance Management System (CMMS)
 ;; implemented entirely inside Emacs.
@@ -66,27 +66,20 @@
 (defun cmms-sync-id-counter ()
   "Synchronize ID counter with the highest existing ID."
   (interactive)
-
   (let ((max-id 0))
-
     (dolist (eq cmms-equipment-db)
-
       (let* ((id-str (symbol-name (car eq)))
              (num (if (string-match "[0-9]+" id-str)
                       (string-to-number (match-string 0 id-str))
                     0)))
-
         (when (> num max-id)
           (setq max-id num))))
-
     (setq cmms-last-id-number max-id)))
 
 (defun cmms-add-equipment (id name type area status)
   "Add or update equipment."
-
   (cmms--ensure-in-list type 'cmms-equipment-types)
   (cmms--ensure-in-list area 'cmms-areas)
-
   (setf (alist-get id cmms-equipment-db)
         (list
          :name name
@@ -175,7 +168,6 @@
 
   (setq cmms-areas
         (delete area cmms-areas))
-
   (message "Area removed: %s" area))
 
 ;;;; ------------------------------------------------------------------
@@ -185,7 +177,6 @@
 (defun cmms-filter ()
   "Filter equipment."
   (interactive)
-
   (let* ((field
           (completing-read
            "Filter by: "
@@ -203,9 +194,7 @@
            ((string= field "Type") :type)
            ((string= field "Area") :area)
            ((string= field "Status") :status))))
-
     (setq cmms--current-filter (cons prop value))
-
     (cmms-refresh-table)))
 
 (defun cmms-clear-filter ()
@@ -351,7 +340,6 @@
 (defun cmms ()
   "Open the CMMS dashboard."
   (interactive)
-
   (with-current-buffer
       (get-buffer-create "*CMMS*")
     (cmms-dashboard-mode)
