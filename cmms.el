@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Javier Pacheco
 ;; Author: Javier Pacheco <jpacheco@disroot.org>(mailto:jpacheco@disroot.org)
 ;; Repo: https://github.com/jpachecoxyz/emms.el
+
 ;;; Commentary:
 ;; A simple Computerized Maintenance Management System (CMMS)
 ;; implemented entirely inside Emacs.
