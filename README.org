@@ -1,206 +1,106 @@
-#+TITLE: EMMS.el
-#+AUTHOR: Ing. Javier Pacheco
-#+OPTIONS: toc:2
+#+title: cmms.el
+#+author: Javier Pacheco
+#+language: en
 
-EMMS (Emacs Maintenance Management System) is a lightweight
-Computerized Maintenance Management System (CMMS) implemented
-entirely in Emacs using Org Mode.
-
-It allows users to manage:
-
-- Areas
-- Assets
-- Work Orders
-
-All data is stored in plain Org files, making it portable,
-versionable, and easy to integrate with the Emacs ecosystem.
-
-* Philosophy
-
-EMMS follows the Emacs philosophy:
-
-- Plain text data
-- Extensible
-- Hackable
-- Keyboard driven
-- No external database required
-
-Everything lives inside Org files.
+* cmms.el
+*cmms.el* is a simple *Computerized Maintenance Management System (CMMS)* implemented entirely inside *Emacs* using Emacs Lisp.
+It provides a lightweight dashboard for managing equipment in an industrial environment directly from your editor.
+This project is designed for engineers and technicians who want a minimal maintenance management workflow integrated with Emacs.
 
 * Features
+- Equipment management (add, edit, delete)
+- Interactive dashboard using =tabulated-list-mode=
+- Equipment status tracking
+- Equipment filtering (type, area, status)
+- Dynamic dashboard statistics
+- Evil mode support
+- Lightweight in-memory database
+- No external dependencies
 
-Current features:
+* Dashboard
+Running the main command opens a dashboard displaying all equipment:
 
-- Create maintenance *Areas*
-- Register *Assets*
-- Generate *Work Orders*
-- Asset and area validation
-- Org-based data storage
-- Simple dashboard interface
+| ID | Name | Type | Area | Status |
 
-Planned features:
+The header also shows a summary of the current system:
+- Total equipment
+- Active equipment
+- Equipment under repair
+- Stopped equipment
 
-- Asset explorer UI
-- Work order status tracking
-- Maintenance history per asset
-- Preventive maintenance scheduling
-- Org Agenda integration
-- Multi-user data directories
-- Reporting
+** Example header:
+#+begin_example
+My Company | Equipment:12 | Active:9 | Repair:2 | Stopped:1
+#+end_example
 
 * Installation
-
 Clone the repository:
-
 #+begin_src bash
-git clone https://github.com/jpachecoxyz/emms.el
+git clone https://github.com/jpachecoxyz/cmms.el
 #+end_src
 
-Add it to your Emacs configuration:
-
+Add the directory to your =load-path=:
 #+begin_src elisp
-(add-to-list 'load-path "/path/to/emms.el")
-(require 'emms)
+(add-to-list 'load-path "/path/to/cmms.el")
+(require 'cmms)
 #+end_src
-
-* Configuration
-
-By default EMMS stores its data in:
-
-#+begin_src
-/tmp/emms/
-#+end_src
-
-You can customize this:
-
-#+begin_src elisp
-(setq emms-directory "~/emacs/emms/")
-#+end_src
-
-Files created:
-
-| File | Purpose |
-|-----|--------|
-| assets.org | Areas and assets |
-| workorders.org | Maintenance work orders |
 
 * Usage
-
-Main keybinding:
-
+Run the main command:
 #+begin_src
-C-c m
+M-x cmms
 #+end_src
 
-Available commands:
+This opens the CMMS dashboard.
 
-| Key | Action |
-|----|-------|
-| a | Create Area |
-| e | Create Asset |
-| w | Create Work Order |
+*Keybindings*
 
-Example:
+| Key | Action                |
+| --- | --------------------- |
+| a   | Add equipment         |
+| e   | Edit equipment        |
+| d   | Delete equipment      |
+| RET | Open equipment record |
+| /   | Filter equipment      |
+| r   | Clear filter          |
+| g   | Refresh dashboard     |
+| q   | Quit                  |
 
+* Equipment Data Structure
+Equipment is stored internally as an association list:
+#+begin_src elisp
+(EQ-001
+:name "Main Motor"
+:type "Motor"
+:area "Production"
+:status "Active")
+#+end_src
+
+* Example Workflow
+1. Open the dashboard
 #+begin_src
-C-c m a
+M-x cmms
 #+end_src
 
-Create an area:
+2. Add equipment
 
+Press:
 #+begin_src
-Injection
+a
 #+end_src
 
-Add an asset:
-
+3. Filter equipment by area or type
 #+begin_src
-C-c m e
+/
 #+end_src
 
-Example:
+* Future Ideas
+Possible future features:
 
-#+begin_src
-IDRA 400
-Area: Injection
-#+end_src
-
-Create a work order:
-
-#+begin_src
-C-c m w
-#+end_src
-
-* Data Structure
-
-Assets are stored inside areas:
-
-#+begin_src org
-* Injection
-:PROPERTIES:
-:TYPE: area
-:END:
-
-** IDRA 400
-:PROPERTIES:
-:TYPE: asset
-:AREA: Injection
-:END:
-
-* Assembly
-:PROPERTIES:
-:TYPE: area
-:END:
-#+end_src
-
-Work orders:
-
-#+begin_src org
-* WO 202604041530
-:PROPERTIES:
-:ASSET: IDRA 400
-:STATUS: OPEN
-:END:
-
-Hydraulic oil leak detected
-#+end_src
-
-* Roadmap
-
-Planned improvements:
-
-- [ ] Interactive dashboard
-- [ ] Asset explorer tree
-- [ ] Work order lifecycle
-- [ ] Preventive maintenance
-- [ ] Org Agenda integration
-- [ ] Reports
-- [ ] MELPA package release
-
-* Why Emacs?
-
-Most CMMS systems are:
-
-- Expensive
-- Closed
-- Web-based
-- Hard to customize
-
-EMMS is:
-
-- Free
-- Hackable
-- Local-first
-- Scriptable
-
-* Contributing
-
-Pull requests and suggestions are welcome.
-
-Repository:
-
-https://github.com/jpachecoxyz/emms.el
-
-* License
-
-MIT License
+- Persistent database
+- Work orders
+- Preventive maintenance scheduling
+- Spare parts management
+- Maintenance history
+- Org-mode integration
+- Reporting and statistics

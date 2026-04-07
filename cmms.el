@@ -1,10 +1,11 @@
-;;; cmms.el --- CMMS but in elisp -*- lexical-binding: t; -*-
+;;; cmms.el --- Simple CMMS inside Emacs -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Javier Pacheco
-;; Author: Javier Pacheco <jpacheco@disroot.org>
+;; Author: Javier Pacheco [jpacheco@disroot.org](mailto:jpacheco@disroot.org)
 
 ;;; Commentary:
-;; Sistema simple de gestión de mantenimiento (CMMS) dentro de Emacs.
+;; A simple Computerized Maintenance Management System (CMMS)
+;; implemented entirely inside Emacs.
 
 ;;; Code:
 
@@ -12,401 +13,350 @@
 (require 'tabulated-list)
 
 ;;;; ------------------------------------------------------------------
-;;;; Variables principales
+;;;; Core variables
 ;;;; ------------------------------------------------------------------
 
-(defvar cmms-company-name "Mi Empresa"
-  "Nombre de la empresa mostrado en el dashboard.")
+(defvar cmms-company-name "My Company"
+  "Company name displayed in the dashboard.")
 
-(defvar cmms-equipos nil
-  "Base de datos principal de equipos.")
+(defvar cmms-equipment-db nil
+  "Main equipment database.")
 
-(defvar cmms-tipos-equipo
-  '("Motor" "Bomba" "Compresor" "Robot" "Horno")
-  "Tipos de equipo disponibles.")
+(defvar cmms-equipment-types
+  '("Motor" "Pump" "Compressor" "Robot" "Furnace")
+  "Available equipment types.")
 
 (defvar cmms-areas
-  '("Producción" "Mantenimiento" "Facilities")
-  "Áreas disponibles en planta.")
+  '("Production" "Maintenance" "Facilities")
+  "Available plant areas.")
 
-(defvar cmms-estados
-  '("Activo" "En Reparación" "Detenido")
-  "Estados posibles de un equipo.")
+(defvar cmms-status-list
+  '("Active" "Under Repair" "Stopped")
+  "Possible equipment states.")
 
-(defvar cmms-ultimo-id-numero 0
-  "Último ID generado.")
+(defvar cmms-last-id-number 0
+  "Last generated equipment ID.")
 
-(defvar-local cmms--filtro-actual nil
-  "Filtro activo del dashboard.")
+(defvar-local cmms--current-filter nil
+  "Active dashboard filter.")
 
 ;;;; ------------------------------------------------------------------
-;;;; Utilidades internas
+;;;; Internal utilities
 ;;;; ------------------------------------------------------------------
 
-(defun cmms--generar-proximo-id ()
-  "Genera el siguiente ID de equipo."
-  (setq cmms-ultimo-id-numero (1+ cmms-ultimo-id-numero))
-  (intern (format "EQ-%03d" cmms-ultimo-id-numero)))
+(defun cmms--generate-next-id ()
+  "Generate the next equipment ID."
+  (setq cmms-last-id-number (1+ cmms-last-id-number))
+  (intern (format "EQ-%03d" cmms-last-id-number)))
 
-(defun cmms--asegurar-en-lista (valor lista-var)
-  "Si VALOR no está en LISTA-VAR lo agrega."
-  (unless (member valor (symbol-value lista-var))
-    (set lista-var
-         (append (symbol-value lista-var) (list valor)))))
+(defun cmms--ensure-in-list (value list-var)
+  "Ensure VALUE exists inside LIST-VAR."
+  (unless (member value (symbol-value list-var))
+    (set list-var
+         (append (symbol-value list-var) (list value)))))
 
-(defun cmms--equipo-en-linea ()
-  "Obtiene el ID del equipo en la línea actual."
+(defun cmms--equipment-at-point ()
+  "Return the equipment ID at the current line."
   (tabulated-list-get-id))
 
 ;;;; ------------------------------------------------------------------
-;;;; Agregar / editar / eliminar equipos
+;;;; Equipment management
 ;;;; ------------------------------------------------------------------
 
-(defun cmms-sincronizar-contador-id ()
-  "Ajusta el contador basándose en el ID más alto existente en cmms-equipos'."
+(defun cmms-sync-id-counter ()
+  "Synchronize ID counter with the highest existing ID."
   (interactive)
-  (let
-      ((max-id 0)) (dolist (equipo cmms-equipos)
-                     (let* ((id-str (symbol-name (car equipo)))
-                            ;; Extraemos el número del string "EQ-005" -> 5
-                            (num (if (string-match "[0-9]+" id-str)
-                                     (string-to-number (match-string 0 id-str)) 0)))
-                       (when (> num max-id) (setq max-id num))))
-      (setq cmms-ultimo-id-numero max-id)
-      ;; (message "Contador de IDs sincronizado en: %d" max-id)
-      ))
 
-(defun cmms-agregar-equipo (id nombre tipo area estado)
-  "Agrega o actualiza un equipo."
+  (let ((max-id 0))
 
-  (cmms--asegurar-en-lista tipo 'cmms-tipos-equipo)
-  (cmms--asegurar-en-lista area 'cmms-areas)
+    (dolist (eq cmms-equipment-db)
 
-  (setf (alist-get id cmms-equipos)
+      (let* ((id-str (symbol-name (car eq)))
+             (num (if (string-match "[0-9]+" id-str)
+                      (string-to-number (match-string 0 id-str))
+                    0)))
+
+        (when (> num max-id)
+          (setq max-id num))))
+
+    (setq cmms-last-id-number max-id)))
+
+(defun cmms-add-equipment (id name type area status)
+  "Add or update equipment."
+
+  (cmms--ensure-in-list type 'cmms-equipment-types)
+  (cmms--ensure-in-list area 'cmms-areas)
+
+  (setf (alist-get id cmms-equipment-db)
         (list
-         :nombre nombre
-         :tipo tipo
+         :name name
+         :type type
          :area area
-         :estado estado)))
+         :status status)))
 
-(defun cmms-prompt-agregar-equipo ()
-  "Formulario interactivo para agregar equipo."
+(defun cmms-prompt-add-equipment ()
+  "Interactive form to add equipment."
   (interactive)
-
-  (cmms-sincronizar-contador-id)
-  (let* ((id (cmms--generar-proximo-id))
-
-         (nombre
-          (read-string (format "[%s] Nombre: " id)))
-
-         (tipo
+  (cmms-sync-id-counter)
+  (let* ((id (cmms--generate-next-id))
+         (name
+          (read-string (format "[%s] Name: " id)))
+         (type
           (completing-read
-           "Tipo: "
-           cmms-tipos-equipo nil nil))
-
+           "Type: "
+           cmms-equipment-types nil nil))
          (area
           (completing-read
-           "Área: "
+           "Area: "
            cmms-areas nil nil))
-
-         (estado
+         (status
           (completing-read
-           "Estado: "
-           cmms-estados nil t)))
+           "Status: "
+           cmms-status-list nil t)))
+    (cmms-add-equipment id name type area status)
+    (cmms-refresh-table)))
 
-    (cmms-agregar-equipo id nombre tipo area estado)
-    (cmms-refrescar-tabla)))
-
-(defun cmms-editar-equipo ()
-  "Editar equipo en la línea actual."
+(defun cmms-edit-equipment ()
+  "Edit equipment at point."
   (interactive)
-
-  (let* ((id (cmms--equipo-en-linea))
-         (datos (alist-get id cmms-equipos)))
-
+  (let* ((id (cmms--equipment-at-point))
+         (data (alist-get id cmms-equipment-db)))
     (when id
-
-      (let* ((nombre
+      (let* ((name
               (read-string
-               "Nombre: "
-               (plist-get datos :nombre)))
-
-             (tipo
+               "Name: "
+               (plist-get data :name)))
+             (type
               (completing-read
-               "Tipo: "
-               cmms-tipos-equipo nil nil
-               (plist-get datos :tipo)))
-
+               "Type: "
+               cmms-equipment-types nil nil
+               (plist-get data :type)))
              (area
               (completing-read
-               "Área: "
+               "Area: "
                cmms-areas nil nil
-               (plist-get datos :area)))
-
-             (estado
+               (plist-get data :area)))
+             (status
               (completing-read
-               "Estado: "
-               cmms-estados nil t
-               (plist-get datos :estado))))
+               "Status: "
+               cmms-status-list nil t
+               (plist-get data :status))))
+        (cmms-add-equipment id name type area status)
+        (cmms-refresh-table)))))
 
-        (cmms-agregar-equipo id nombre tipo area estado)
-        (cmms-refrescar-tabla)))))
-
-(defun cmms-eliminar-equipo ()
-  "Eliminar equipo actual."
+(defun cmms-delete-equipment ()
+  "Delete equipment at point."
   (interactive)
-
-  (let ((id (cmms--equipo-en-linea)))
-
+  (let ((id (cmms--equipment-at-point)))
     (when (and id
                (y-or-n-p
-                (format "Eliminar %s ? " id)))
-
-      (setq cmms-equipos
-            (assq-delete-all id cmms-equipos))
-
-      (cmms-refrescar-tabla))))
-
+                (format "Delete %s ? " id)))
+      (setq cmms-equipment-db
+            (assq-delete-all id cmms-equipment-db))
+      (cmms-refresh-table))))
 
 (defun cmms-remove-type (type)
-  "Remove EQUIPO from `cmms-tipos-equipo`."
+  "Remove TYPE from `cmms-equipment-types`."
   (interactive
-   (list (completing-read "Remove category: " cmms-tipos-equipo nil t)))
-  (setq cmms-categorias
-        (delete-dups
-         (delete type cmms-tipos-equipo)))
-  (message "Category removed: %s" type))
+   (list (completing-read
+          "Remove type: "
+          cmms-equipment-types nil t)))
+
+  (setq cmms-equipment-types
+        (delete type cmms-equipment-types))
+  (message "Type removed: %s" type))
 
 (defun cmms-remove-area (area)
   "Remove AREA from `cmms-areas`."
   (interactive
-   (list (completing-read "Remove area: " cmms-areas nil t)))
-  (setq cmms-categorias
-        (delete-dups
-         (delete area cmms-areas)))
+   (list (completing-read
+          "Remove area: "
+          cmms-areas nil t)))
+
+  (setq cmms-areas
+        (delete area cmms-areas))
+
   (message "Area removed: %s" area))
 
 ;;;; ------------------------------------------------------------------
-;;;; Filtros
+;;;; Filters
 ;;;; ------------------------------------------------------------------
-(defun cmms-filtrar ()
-  "Filtrar equipos."
+
+(defun cmms-filter ()
+  "Filter equipment."
   (interactive)
 
-  (let* ((campo
+  (let* ((field
           (completing-read
-           "Filtrar por: "
-           '("Tipo" "Área" "Estado")
-           nil t))
-
-         (valor
+           "Filter by: "
+           '("Type" "Area" "Status") nil t))
+         (value
           (cond
-           ((string= campo "Tipo")
-            (completing-read "Tipo: " cmms-tipos-equipo nil t))
-
-           ((string= campo "Área")
-            (completing-read "Área: " cmms-areas nil t))
-
-           ((string= campo "Estado")
-            (completing-read "Estado: " cmms-estados nil t))))
-
+           ((string= field "Type")
+            (completing-read "Type: " cmms-equipment-types nil t))
+           ((string= field "Area")
+            (completing-read "Area: " cmms-areas nil t))
+           ((string= field "Status")
+            (completing-read "Status: " cmms-status-list nil t))))
          (prop
           (cond
-           ((string= campo "Tipo") :tipo)
-           ((string= campo "Área") :area)
-           ((string= campo "Estado") :estado))))
+           ((string= field "Type") :type)
+           ((string= field "Area") :area)
+           ((string= field "Status") :status))))
 
-    (setq cmms--filtro-actual (cons prop valor))
+    (setq cmms--current-filter (cons prop value))
 
-    (cmms-refrescar-tabla)))
+    (cmms-refresh-table)))
 
-(defun cmms-limpiar-filtro ()
-  "Eliminar filtro."
+(defun cmms-clear-filter ()
+  "Clear active filter."
   (interactive)
-
-  (setq cmms--filtro-actual nil)
-
-  (cmms-refrescar-tabla))
+  (setq cmms--current-filter nil)
+  (cmms-refresh-table))
 
 ;;;; ------------------------------------------------------------------
-;;;; Dashboard / Tabla
+;;;; Dashboard
 ;;;; ------------------------------------------------------------------
 
 (defun cmms--header-string ()
-  "Header dinámico del dashboard."
-
-  (let ((activos 0)
-        (reparacion 0)
-        (detenidos 0))
-
-    (dolist (e cmms-equipos)
-
-      (pcase (plist-get (cdr e) :estado)
-
-        ("Activo"
-         (cl-incf activos))
-
-        ("En Reparación"
-         (cl-incf reparacion))
-
-        ("Detenido"
-         (cl-incf detenidos))))
-
+  "Dynamic dashboard header."
+  (let ((active 0)
+        (repair 0)
+        (stopped 0))
+    (dolist (e cmms-equipment-db)
+      (pcase (plist-get (cdr e) :status)
+        ("Active"
+         (cl-incf active))
+        ("Under Repair"
+         (cl-incf repair))
+        ("Stopped"
+         (cl-incf stopped))))
     (format
-     " %s | Equipos:%d | Activos:%d | Reparación:%d | Detenidos:%d "
+     " %s | Equipment:%d | Active:%d | Repair:%d | Stopped:%d "
      cmms-company-name
-     (length cmms-equipos)
-     activos
-     reparacion
-     detenidos)))
+     (length cmms-equipment-db)
+     active
+     repair
+     stopped)))
 
-(defun cmms--generar-entradas-tabla ()
-
-  (let ((equipos cmms-equipos))
-
-    (when cmms--filtro-actual
-
-      (setq equipos
+(defun cmms--generate-table-entries ()
+  (let ((equipment cmms-equipment-db))
+    (when cmms--current-filter
+      (setq equipment
             (cl-remove-if-not
              (lambda (eq)
-
                (string=
                 (plist-get (cdr eq)
-                           (car cmms--filtro-actual))
-                (cdr cmms--filtro-actual)))
-
-             equipos)))
-
+                           (car cmms--current-filter))
+                (cdr cmms--current-filter)))
+             equipment)))
     (mapcar
-
-     (lambda (equipo)
-
-       (let ((id (car equipo))
-             (p (cdr equipo)))
-
+     (lambda (eq)
+       (let ((id (car eq))
+             (p (cdr eq)))
          (list
           id
           (vector
-
            (symbol-name id)
-           (plist-get p :nombre)
-           (plist-get p :tipo)
+           (plist-get p :name)
+           (plist-get p :type)
            (plist-get p :area)
-           (plist-get p :estado)))))
+           (plist-get p :status)))))
+     equipment)))
 
-     equipos)))
-
-(defun cmms-refrescar-tabla ()
-  "Refrescar dashboard."
+(defun cmms-refresh-table ()
+  "Refresh dashboard."
   (interactive)
-
   (setq tabulated-list-entries
-        (cmms--generar-entradas-tabla))
-
+        (cmms--generate-table-entries))
   (tabulated-list-print t)
-
   (force-mode-line-update))
 
 ;;;; ------------------------------------------------------------------
-;;;; Navegación
+;;;; Navigation
 ;;;; ------------------------------------------------------------------
 
-(defun cmms-abrir-equipo ()
-  "Abrir detalles del equipo."
+(defun cmms-open-equipment ()
+  "Open equipment details."
   (interactive)
-
-  (let ((id (cmms--equipo-en-linea)))
-
+  (let ((id (cmms--equipment-at-point)))
     (when id
-      (message "Abrir ficha del equipo: %s" id))))
+      (message "Open equipment record: %s" id))))
 
 ;;;; ------------------------------------------------------------------
-;;;; Keybindings
+;;;; Keymap
 ;;;; ------------------------------------------------------------------
 
-(defvar cmms-equipos-mode-map
-
+(defvar cmms-dashboard-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "a") #'cmms-prompt-add-equipment)
+    (define-key map (kbd "e") #'cmms-edit-equipment)
+    (define-key map (kbd "d") #'cmms-delete-equipment)
 
-    (define-key map (kbd "a") #'cmms-prompt-agregar-equipo)
-    (define-key map (kbd "e") #'cmms-editar-equipo)
-    (define-key map (kbd "d") #'cmms-eliminar-equipo)
+    (define-key map (kbd "RET") #'cmms-open-equipment)
 
-    (define-key map (kbd "RET") #'cmms-abrir-equipo)
+    (define-key map (kbd "/") #'cmms-filter)
 
-    (define-key map (kbd "/") #'cmms-filtrar)
-
-    (define-key map (kbd "g") #'cmms-refrescar-tabla)
-    (define-key map (kbd "r") #'cmms-limpiar-filtro)
+    (define-key map (kbd "g") #'cmms-refresh-table)
+    (define-key map (kbd "r") #'cmms-clear-filter)
 
     (define-key map (kbd "q") #'quit-window)
-
     map))
 
 ;;;; ------------------------------------------------------------------
-;;;; Evil support
+;;;; Evil integration
 ;;;; ------------------------------------------------------------------
 
 (when (featurep 'evil)
-
   (evil-set-initial-state
-   'cmms-equipos-mode
+   'cmms-dashboard-mode
    'normal)
 
   (evil-define-key
     'normal
-    cmms-equipos-mode-map
-
-    (kbd "a") #'cmms-prompt-agregar-equipo
-    (kbd "e") #'cmms-editar-equipo
-    (kbd "d") #'cmms-eliminar-equipo
-    (kbd "RET") #'cmms-abrir-equipo
-    (kbd "/") #'cmms-filtrar
-    (kbd "g") #'cmms-refrescar-tabla
-    (kbd "r") #'cmms-limpiar-filtro
+    cmms-dashboard-mode-map
+    (kbd "a") #'cmms-prompt-add-equipment
+    (kbd "e") #'cmms-edit-equipment
+    (kbd "d") #'cmms-delete-equipment
+    (kbd "RET") #'cmms-open-equipment
+    (kbd "/") #'cmms-filter
+    (kbd "g") #'cmms-refresh-table
+    (kbd "r") #'cmms-clear-filter
     (kbd "q") #'quit-window))
 
 ;;;; ------------------------------------------------------------------
 ;;;; Major mode
 ;;;; ------------------------------------------------------------------
 
-(define-derived-mode cmms-equipos-mode
+(define-derived-mode cmms-dashboard-mode
   tabulated-list-mode
   "CMMS"
-
-  "Modo principal del dashboard CMMS."
-
+  "Main CMMS dashboard."
   (setq header-line-format
         '(:eval (cmms--header-string)))
-
   (setq tabulated-list-format
         [("ID" 10 t)
-         ("Nombre" 25 t)
-         ("Tipo" 18 t)
-         ("Área" 18 t)
-         ("Estado" 12 t)])
+         ("Name" 25 t)
+         ("Type" 18 t)
+         ("Area" 18 t)
+         ("Status" 12 t)])
 
   (setq tabulated-list-padding 2)
-
   (tabulated-list-init-header))
 
 ;;;; ------------------------------------------------------------------
-;;;; Comando principal
+;;;; Entry point
 ;;;; ------------------------------------------------------------------
 
 (defun cmms ()
-  "Abrir dashboard CMMS."
+  "Open the CMMS dashboard."
   (interactive)
 
   (with-current-buffer
       (get-buffer-create "*CMMS*")
-
-    (cmms-equipos-mode)
-
-    (cmms-refrescar-tabla)
-
+    (cmms-dashboard-mode)
+    (cmms-refresh-table)
     (switch-to-buffer (current-buffer))))
 
 (provide 'cmms)
-
 ;;; cmms.el ends here
